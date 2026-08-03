@@ -39,7 +39,7 @@ export const register = async (req, res) => {
         expiresIn:'7d'  // expires the token in 7 days
     });
 
-    res.cookie('token',token {
+    res.cookie('token',token,{
         httpOnly:true,
         secure:process.env.NODE_ENV==='production',
         sameSite:process.env.NODE_ENV==='production'?'none':'strict',
