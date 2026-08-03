@@ -3,6 +3,7 @@ import cors from 'cors';
 import 'dotenv/config';
 import cookieParser from 'cookie-parser';
 import connectDB from './config/mongodb.js';
+import authRouter from './routes/auth.route.js';
 
 
 const app=express();
@@ -20,6 +21,8 @@ app.use(cors({
 app.get('/',(req,res)=>{
     res.send('api is working')
 })
+
+app.use('/api/auth',authRouter);
 
 app.listen(port,()=>{
 

@@ -47,7 +47,7 @@ export const register = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // convert 7 days to milliseconds
+      maxAge: 7 * 24 * 60 * 60 * 1000 // convert 7 days to milliseconds
     });
 
     return res.status(201).json({
@@ -123,3 +123,26 @@ export const login = async (req, res) => {
     });
   }
 };
+
+export const logout= async (req,res)=>{
+    try{
+        res.clearCookie('token',{
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict"
+        })
+        return res.status(200).json({
+            success:true,
+            message:'User logged out successfully'
+        })
+
+    }
+    catch(err){
+
+    res.status(500).json({
+      success: false,
+      message: err.message || "internal server error",
+    });
+
+    }
+}
