@@ -33,22 +33,91 @@ export const register = async (req, res) => {
     });
     await user.save(); // new user is saved to the database
 
-    const token = jwt.sign({
-      id: user._id,
-    },process.env.JWT_SECRET,{
-        expiresIn:'7d'  // expires the token in 7 days
+    const token = jwt.sign(
+      {
+        id: user._id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d", // expires the token in 7 days
+      },
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // convert 7 days to milliseconds
     });
 
-    res.cookie('token',token,{
-        httpOnly:true,
-        secure:process.env.NODE_ENV==='production',
-        sameSite:process.env.NODE_ENV==='production'?'none':'strict',
-        maxAge:7*24*60*60*1000 // convert 7 days to milliseconds
+    return res.status(201).json({
+        success:true,
+        message:'User registered successfully'
     })
-
 
   } catch (err) {
     res.status(500).json({
+      success: false,
+      message: err.message || "internal server error",
+    });
+  }
+};
+
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Email & Password are required",
+    });
+  }
+
+  try {
+    const user = await userModel.findOne({
+      email,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const isPasswordMatched = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatched) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Password",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+        success:true,
+        message:'User logged in successfully'
+    })
+
+  } catch (err) {
+    return res.status(500).json({
       success: false,
       message: err.message || "internal server error",
     });
