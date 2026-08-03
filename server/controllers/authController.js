@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
+import transporter from '../config/nodeMailer.js';
 
 export const register = async (req, res) => {
   const { name, email, password } = req.body;
@@ -49,6 +50,19 @@ export const register = async (req, res) => {
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000 // convert 7 days to milliseconds
     });
+
+    // to send an welcome email to the user
+
+    const mailOptions={
+        from:process.env.SENDER_EMAIL,
+        to:email,
+        subject:'Welcome to our App',
+        text:`Hi ${name},\n\nWelcome to our app! We're excited to have you on board. If you have any questions or need assistance, feel free to reach out to us.\n\nBest regards,\nThe Team`
+    }
+
+    await transporter.sendMail(mailOptions); // it will send the email to the user 
+    
+
 
     return res.status(201).json({
         success:true,
