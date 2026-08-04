@@ -276,5 +276,106 @@ export const isUserAuthenticated=async(req,res)=>{
 
 export const resetOtp=async(req,res)=>{
   const {email}=req.body;
-  
+  if(!email){
+    return res.status(400).json({
+      success:false,
+      message:'Email is required'
+    })
+  }
+
+  try{
+
+    const user=await userModel.findOne({
+      email
+    })
+
+    if(!user){
+      return res.status(404).json({
+        success:false,
+        message:'User not found'
+      })
+    }
+
+    const otp=String(Math.floor(100000+Math.random()*900000));
+    user.resetOtp=otp;
+    user.resetOtpExpiryAt=Date.now()+15*60*60*1000; // expires in 15 minutes
+
+    await user.save();
+
+    const mailOption={
+      from:process.env.SENDER_EMAIL,
+      to:user.email,
+      subject:'Password Reset OTP',
+      text:`Hi ${user.name},\n\nYour OTP for password reset is: ${otp}. It will expire in 15 minutes.\n\nBest regards,\nThe Team`
+    }
+
+    await transporter.sendMail(mailOption);
+    return res.status(200).json({
+      success:true,
+      message:'OTP sent to your email'
+    })
+
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message || "internal server error",
+    });
+  }
+}
+
+export const resetUserPassword=async(req,res)=>{
+
+  const {email,otp,newPassword}=req.body;
+  if(!email || !otp || !newPassword){
+    return res.status(400).json({
+      success:false,
+      message:'Missing required fields'
+    })
+  }
+  try{
+
+    const user=await userModel.findOne({
+      email
+    })
+
+    if(!user){
+      return res.status(404).json({
+        success:false,
+        message:'User not found'
+      })
+    }
+
+    if(user.resetOtp==='' || user.resetOtp!==otp){
+      return res.status(400).json({
+        success:false,
+        message:'Invalid OTP'
+      })
+    }
+
+    if(user.resetOtpExpiryAt<Date.now()){
+      return res.status(400).json({
+        success:false,
+        message:'OTP has expired'
+      })
+    }
+
+    const hashedPassword=await bcrypt.hash(newPassword,10);
+    user.password=hashedPassword;
+    user.resetOtp='';
+    user.resetOtpExpiryAt=0;
+    await user.save();
+    return res.status(200).json({
+      success:true,
+      message:'Password reset successfully'
+    })
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message || "internal server error",
+    });
+  }
 }
