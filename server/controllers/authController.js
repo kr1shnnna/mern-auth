@@ -178,7 +178,7 @@ export const sendVerifyOtp=async(req,res)=>{
   const otp=String(Math.floor( 100000+ Math.random()*900000)) // generate a 6 digit random number
 
   user.verifyOtp=otp;
-  user.verifyOtpExpiryAt=date.now()+24*60*60*1000; // 24 hours from now
+  user.verifyOtpExpiryAt=Date.now()+24*60*60*1000; // 24 hours from now
 
   await user.save();
 
@@ -198,6 +198,7 @@ export const sendVerifyOtp=async(req,res)=>{
 
 
   }catch(err){
+    console.error(err);
     res.status(500).json({
       success: false,
       message: err.message || "internal server error",
@@ -209,7 +210,7 @@ export const sendVerifyOtp=async(req,res)=>{
 export const verifyAccount=async(req,res)=>{
 
    const {userId,otp}=req.body;
-   if(!userId || otp){
+   if(!userId || !otp){
     return res.status(400).json({
         success:false,
         message:'Missing required fields'
@@ -231,7 +232,7 @@ export const verifyAccount=async(req,res)=>{
         message:'Invalid OTP'
       })
     }
-if(user.verifyOtpExpiryAt<date.now()){
+if(user.verifyOtpExpiryAt<Date.now()){
   return res.status(400).json({
     success:false,
     message:'OTP has expired'
@@ -248,9 +249,32 @@ return res.status(200).json({
 })
    }
    catch(err){
+    console.error(err);
     res.status(500).json({
       success: false,
       message: err.message || "internal server error",
     });
    }
+}
+
+export const isUserAuthenticated=async(req,res)=>{
+  try{
+    return res.status(200).json({
+      success:true,
+      message:'User is authenticated'
+    })
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message || "internal server error",
+    });
+  }
+}
+
+
+export const resetOtp=async(req,res)=>{
+  const {email}=req.body;
+  
 }
