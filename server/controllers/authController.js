@@ -160,3 +160,97 @@ export const logout= async (req,res)=>{
 
     }
 }
+
+// send otp to the user for verification
+export const sendVerifyOtp=async(req,res)=>{
+  try{
+
+    const {userId}=req.body;
+
+    const user =await userModel.findById(userId);
+    if(user.isAccountVerified){
+      return res.status(400).json({
+        success:false,
+        message:'Account is already verified'
+      })
+    }
+
+  const otp=String(Math.floor( 100000+ Math.random()*900000)) // generate a 6 digit random number
+
+  user.verifyOtp=otp;
+  user.verifyOtpExpiryAt=date.now()+24*60*60*1000; // 24 hours from now
+
+  await user.save();
+
+  const mailOption={
+    from:process.env.SENDER_EMAIL,
+    to:user.email,
+    subject:'Account Verification OTP',
+    text:`Hi ${user.name},\n\nYour OTP for account verification is: ${otp}. It will expire in 24 hours.\n\nBest regards,\nThe Team`
+  }
+  await transporter.sendMail(mailOption);
+
+  return res.status(200).json({
+    success:true,
+    message:'OTP sent to your email'
+  })
+
+
+
+  }catch(err){
+    res.status(500).json({
+      success: false,
+      message: err.message || "internal server error",
+    });
+  }
+}
+
+
+export const verifyAccount=async(req,res)=>{
+
+   const {userId,otp}=req.body;
+   if(!userId || otp){
+    return res.status(400).json({
+        success:false,
+        message:'Missing required fields'
+    })
+   }
+
+   try{
+
+    const user=await userModel.findById(userId);
+    if(!user){
+        return res.status(404).json({
+            success:false,
+            message:'User not found'
+        })
+    }
+    if(user.verifyOtp===''|| user.verifyOtp!==otp){
+      return res.status(400).json({
+        success:false,
+        message:'Invalid OTP'
+      })
+    }
+if(user.verifyOtpExpiryAt<date.now()){
+  return res.status(400).json({
+    success:false,
+    message:'OTP has expired'
+  })
+}
+
+user.isAccountVerified=true;
+user.verifyOtp='';
+user.verifyOtpExpiryAt=0;
+await user.save();
+return res.status(200).json({
+  message:'Account verified successfully',
+  success:true
+})
+   }
+   catch(err){
+    res.status(500).json({
+      success: false,
+      message: err.message || "internal server error",
+    });
+   }
+}
